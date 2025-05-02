@@ -1,0 +1,184 @@
+* {
+  box-sizing: border-box;
+}
+
+h1 {
+  font-style: italic;
+}
+
+#map {
+  border-style: dashed;
+}
+
+body {
+  font-family: "Quicksand", sans-serif;
+  background-color: white;
+  margin: 0;
+  height: 175vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar-container {
+  width: 100vw;
+  padding-block: 1rem;
+  margin-inline: auto;
+  background-color: #2d3e50;
+  color: white;
+
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+
+  z-index: 999;
+}
+
+.nav-list ul {
+  display: flex;
+  gap: 2rem;
+}
+
+.nav-list ul li {
+  list-style-type: none;
+}
+
+.nav-list ul li a {
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: black;
+  transition: all 0.4s ease-in-out;
+  border-radius: 100px;
+  padding: 0.5rem 1.5rem;
+}
+
+.nav-list ul li a:hover {
+  background-color: black;
+  color: white;
+}
+
+main {
+  flex: 1;
+
+  width: 100%;
+  margin-inline: auto;
+  padding: 2rem 4rem;
+  gap: 3rem;
+
+  display: flex;
+  align-items: flex-start;
+}
+
+main article {
+  margin-block: 6rem;
+}
+
+main .content {
+  flex: 1;
+}
+
+p {
+  font-size: 1.2rem;
+  line-height: 1.7rem;
+}
+
+main aside {
+  flex: 1;
+}
+
+.img {
+  border: 7px dashed black;
+  border-radius: 100px;
+  margin: auto;
+  overflow: hidden; /* penting agar gambar bulat tidak keluar dari border */
+  width: 12rem;
+  height: 12rem;
+  object-fit: cover;
+}
+
+th {
+  text-align: left;
+  margin-right: 1rem;
+}
+
+tr {
+  margin-inline: 2px;
+}
+
+.profile {
+  margin-inline: 1rem;
+}
+
+#theme {
+  padding: 0.8rem 2.5rem;
+  border: 7px dashed black;
+  border-radius: 999px;
+  margin-block-start: 1rem;
+
+  background-color: #5fbdff;
+
+  font-family: "Quicksand", sans-serif;
+  text-transform: uppercase;
+  font-size: 1rem;
+  font-weight: 700;
+  color: black;
+
+  cursor: pointer;
+}
+
+footer {
+  padding: 20px;
+  color: black;
+  background-color: #5fbdff;
+
+  text-align: center;
+  font-weight: bold;
+}
+
+/*Perangkat dengan lebar layar 1200px dan dibawahnya */
+@media screen and (max-width: 1200px) {
+  main {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    height: 100vh;
+  }
+
+  .title {
+    margin-inline: 3em;
+  }
+
+  #map {
+    align-self: center;
+  }
+
+  aside {
+    align-self: center;
+  }
+  .profile {
+    display: flex;
+    flex-direction: column;
+  }
+  img {
+    margin: auto;
+  }
+}
+/*Perangkat dengan lebar layar 768px dan dibawahnya*/
+@media screen and (max-width: 768px) {
+  header.navbar-container {
+    flex-direction: column;
+  }
+  header.navbar-container .nav-list ul {
+    flex-wrap: wrap;
+    column-gap: 0.5rem;
+  }
+  main .content p {
+    font-size: 1rem;
+  }
+  .profile {
+    display: flex;
+    flex-direction: column;
+  }
+  img {
+    margin: auto;
+  }
+}

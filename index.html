@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Peta Rumah Kos Strategis</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <style>
+      #map {
+        height: 100%;
+        width: 70vw;
+      }
+    </style>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="navbar-container">
+      <div class="title">
+        <h1>Pemetaan Rumah Kos Strategis Dengan Harga Sewa Dibawah 10 Juta Rupiah Pertahun</h1>
+      </div>
+    </header>
+    <main>
+      <div id="map">
+        <div style="margin-left: 8%; position: relative; z-index: 999; margin-top: 1%">
+          <button id="togglePoints" style="width: 8rem; padding-block: 1rem" class="btn btn-dark">Points</button>
+          <button id="toggleLines" style="width: 8rem; margin-block: 1rem; padding-block: 1rem" class="btn btn-dark">Lines</button>
+          <button id="togglePolygons" style="width: 8rem; padding-block: 1rem" class="btn btn-dark">Polygons</button>
+        </div>
+      </div>
+      <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+      <script>
+        const map = L.map("map").setView([3.566, 98.656], 13); // Posisi default
+
+        // Peta dasar Google Maps
+        const googleSat = L.tileLayer("https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
+          maxZoom: 20,
+          subdomains: ["mt0", "mt1", "mt2", "mt3"],
+        }).addTo(map);
+
+        // Buat ikon custom di luar loop
+        const customIcon = L.icon({
+          iconUrl: "https://storage.googleapis.com/sistem-informasi-geo-yusuf/IMG/location_7877883.png", // ganti URL ikon di sini
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32],
+        });
+
+        const pointLayerGroup = L.layerGroup().addTo(map);
+        const lineLayerGroup = L.layerGroup().addTo(map);
+        const polygonLayerGroup = L.layerGroup().addTo(map);
+
+        // Point (marker)
+        fetch("https://sig-930269745448.asia-southeast1.run.app/point")
+          .then((response) => response.json())
+          .then((points) => {
+            points.data.forEach((point) => {
+              if (point.lokasi) {
+                const geojsonPoint = JSON.parse(point.lokasi);
+                if (geojsonPoint && geojsonPoint.coordinates) {
+                  const lat = geojsonPoint.coordinates[1];
+                  const lng = geojsonPoint.coordinates[0];
+
+                  const marker = L.marker([lat, lng], { icon: customIcon }).bindPopup(`
+            <b>${point.nama_tempat}</b><br>
+            Kategori: ${point.kategori}<br>
+            Alamat: ${point.alamat}<br>
+            Deskripsi: ${point.deskripsi || "-"}
+          `);
+
+                  marker.addTo(pointLayerGroup);
+                }
+              }
+            });
+          });
+
+        // Line (jalur)
+        fetch("https://sig-930269745448.asia-southeast1.run.app/line")
+          .then((response) => response.json())
+          .then((data) => {
+            data.data.forEach((item) => {
+              if (item.jalur) {
+                const geojsonLine = JSON.parse(item.jalur);
+                if (geojsonLine && geojsonLine.coordinates) {
+                  const latlngs = geojsonLine.coordinates.map((coord) => [coord[1], coord[0]]);
+
+                  const line = L.polyline(latlngs, { color: "red" }).bindPopup(`
+            <b>${item.nama_kos}</b><br>
+            Tujuan: ${item.nama_tempat}<br>
+            Keterangan: ${item.keterangan || "-"}
+          `);
+
+                  line.addTo(lineLayerGroup);
+                }
+              }
+            });
+          });
+
+        // Polygon (area kos)
+        fetch("https://sig-930269745448.asia-southeast1.run.app/polygon")
+          .then((response) => response.json())
+          .then((polygons) => {
+            polygons.data.forEach((polygon) => {
+              if (polygon.lokasi) {
+                const geojsonPolygon = JSON.parse(polygon.lokasi);
+                if (geojsonPolygon && geojsonPolygon.coordinates) {
+                  let color = "green";
+                  if (polygon.harga_sewa_tahunan > 5000000) color = "orange";
+                  if (polygon.harga_sewa_tahunan > 8000000) color = "red";
+
+                  const latlngs = geojsonPolygon.coordinates[0].map((coord) => [coord[1], coord[0]]);
+
+                  const poly = L.polygon(latlngs, { color: color }).bindPopup(`
+            <b>${polygon.nama_kos}</b><br>
+            Harga sewa tahunan: Rp${polygon.harga_sewa_tahunan}<br>
+            Jumlah kamar: ${polygon.jumlah_kamar || "Tidak diketahui"}<br>
+            Akses 24 jam: ${polygon.akses_24_jam}<br>
+            Fasilitas: ${Object.keys(polygon.fasilitas || {}).join(", ")}<br>
+            Deskripsi: ${polygon.deskripsi || "-"}
+          `);
+
+                  poly.addTo(polygonLayerGroup);
+                }
+              }
+            });
+          });
+
+        // Toggle logic
+        let pointsVisible = true;
+        let linesVisible = true;
+        let polygonsVisible = true;
+
+        document.getElementById("togglePoints").addEventListener("click", () => {
+          if (pointsVisible) {
+            map.removeLayer(pointLayerGroup);
+          } else {
+            map.addLayer(pointLayerGroup);
+          }
+          pointsVisible = !pointsVisible;
+        });
+
+        document.getElementById("toggleLines").addEventListener("click", () => {
+          if (linesVisible) {
+            map.removeLayer(lineLayerGroup);
+          } else {
+            map.addLayer(lineLayerGroup);
+          }
+          linesVisible = !linesVisible;
+        });
+
+        document.getElementById("togglePolygons").addEventListener("click", () => {
+          if (polygonsVisible) {
+            map.removeLayer(polygonLayerGroup);
+          } else {
+            map.addLayer(polygonLayerGroup);
+          }
+          polygonsVisible = !polygonsVisible;
+        });
+      </script>
+
+      <aside>
+        <article class="profile">
+          <img id="image" src="https://storage.googleapis.com/sistem-informasi-geo-yusuf/IMG/Me.jpg" class="img" alt="writer" />
+          <section>
+            <h4>Writer Information</h4>
+
+            <table>
+              <tr>
+                <th>Name</th>
+                <td>Muhammad Yusuf Aulia</td>
+              </tr>
+              <tr>
+                <th>Alamat</th>
+                <td>Medan, Sumatera Utara</td>
+              </tr>
+              <tr>
+                <th>Agama</th>
+                <td>Islam</td>
+              </tr>
+              <tr>
+                <th>Kelas</th>
+                <td>TRPL-6A</td>
+              </tr>
+            </table>
+          </section>
+        </article>
+        <article class="profile">
+          <img id="image" src="https://storage.googleapis.com/sistem-informasi-geo-yusuf/IMG/Me.jpg" class="img" alt="writer" />
+          <section>
+            <h4>Writer Information</h4>
+
+            <table>
+              <tr>
+                <th>Name</th>
+                <td>Atha Rizky Putra Sinuraya</td>
+              </tr>
+              <tr>
+                <th>Alamat</th>
+                <td>Medan, Sumatera Utara</td>
+              </tr>
+              <tr>
+                <th>Agama</th>
+                <td>Islam</td>
+              </tr>
+              <tr>
+                <th>Kelas</th>
+                <td>TRPL-6A</td>
+              </tr>
+            </table>
+          </section>
+        </article>
+        <article class="profile">
+          <img id="image" src="https://storage.googleapis.com/sistem-informasi-geo-yusuf/IMG/Me.jpg" class="img" alt="writer" />
+          <section>
+            <h4>Writer Information</h4>
+
+            <table>
+              <tr>
+                <th>Name</th>
+                <td>Dede Rizaldi</td>
+              </tr>
+              <tr>
+                <th>Alamat</th>
+                <td>Medan, Sumatera Utara</td>
+              </tr>
+              <tr>
+                <th>Agama</th>
+                <td>Islam</td>
+              </tr>
+              <tr>
+                <th>Kelas</th>
+                <td>TRPL-6A</td>
+              </tr>
+            </table>
+          </section>
+        </article>
+      </aside>
+      <aside>
+        <article class="profile">
+          <img id="image" src="https://storage.googleapis.com/sistem-informasi-geo-yusuf/IMG/Desain%20tanpa%20judul_20250502_142552_0000.png" class="img" alt="writer" />
+          <section>
+            <h4>Writer Information</h4>
+
+            <table>
+              <tr>
+                <th>Name</th>
+                <td>Najwa Sabila Dira Rahma</td>
+              </tr>
+              <tr>
+                <th>Alamat</th>
+                <td>Medan, Sumatera Utara</td>
+              </tr>
+              <tr>
+                <th>Agama</th>
+                <td>Islam</td>
+              </tr>
+              <tr>
+                <th>Kelas</th>
+                <td>TRPL-6A</td>
+              </tr>
+            </table>
+          </section>
+        </article>
+        <article class="profile">
+          <img id="image" src="https://storage.googleapis.com/sistem-informasi-geo-yusuf/IMG/Me.jpg" class="img" alt="writer" />
+          <section>
+            <h4>Writer Information</h4>
+
+            <table>
+              <tr>
+                <th>Name</th>
+                <td>Aldri Maranata Sinuhaji</td>
+              </tr>
+
+              <tr>
+                <th>Alamat</th>
+                <td>Medan, Sumatera Utara</td>
+              </tr>
+              <tr>
+                <th>Agama</th>
+                <td>Kristen</td>
+              </tr>
+              <tr>
+                <th>Kelas</th>
+                <td>TRPL-6A</td>
+              </tr>
+            </table>
+          </section>
+        </article>
+        <article class="profile">
+          <img id="image" src="https://storage.googleapis.com/sistem-informasi-geo-yusuf/IMG/Me.jpg" class="img" alt="writer" />
+          <section>
+            <h4>Writer Information</h4>
+
+            <table>
+              <tr>
+                <th>Name</th>
+                <td>Elfan Marunduri</td>
+              </tr>
+              <tr>
+                <th>Alamat</th>
+                <td>Medan, Sumatera Utara</td>
+              </tr>
+              <tr>
+                <th>Agama</th>
+                <td>Kristen</td>
+              </tr>
+              <tr>
+                <th>Kelas</th>
+                <td>TRPL-6A</td>
+              </tr>
+            </table>
+          </section>
+        </article>
+      </aside>
+    </main>
+  </body>
+</html>
