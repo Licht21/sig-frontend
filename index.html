@@ -12,13 +12,15 @@
         width: 70vw;
       }
     </style>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://storage.googleapis.com/sistem-informasi-geo-yusuf/style.css" />
   </head>
   <body>
     <header class="navbar-container">
       <div class="title">
         <h1>Pemetaan Rumah Kos Strategis Dengan Harga Sewa Dibawah 10 Juta Rupiah Pertahun</h1>
       </div>
+      <input type="text" id="searchInput" class="form-control" style="width: 10%" placeholder="Harga Maksimal Kos..." />
+      <button id="searchBtn" class="btn btn-primary">Cari</button>
     </header>
     <main>
       <div id="map">
@@ -97,10 +99,12 @@
             });
           });
 
-        // Polygon (area kos)
+        // Fetch Data dan Tampilkan Polygons
+        let allPolygons = [];
         fetch("https://sig-930269745448.asia-southeast1.run.app/polygon")
           .then((response) => response.json())
           .then((polygons) => {
+            allPolygons = polygons.data;
             polygons.data.forEach((polygon) => {
               if (polygon.lokasi) {
                 const geojsonPolygon = JSON.parse(polygon.lokasi);
@@ -108,19 +112,17 @@
                   let color = "green";
                   if (polygon.harga_sewa_tahunan > 5000000) color = "orange";
                   if (polygon.harga_sewa_tahunan > 8000000) color = "red";
-
                   const latlngs = geojsonPolygon.coordinates[0].map((coord) => [coord[1], coord[0]]);
+                  const polygonLayer = L.polygon(latlngs, { color: color }).bindPopup(`
+                    <b>${polygon.nama_kos}</b><br>
+                    Harga sewa tahunan: Rp${polygon.harga_sewa_tahunan}<br>
+                    Jumlah kamar: ${polygon.jumlah_kamar || "Tidak diketahui"}<br>
+                    Akses 24 jam: ${polygon.akses_24_jam}<br>
+                    Fasilitas: ${Object.keys(polygon.fasilitas || {}).join(", ")}<br>
+                    Deskripsi: ${polygon.deskripsi || "-"}
+                  `);
 
-                  const poly = L.polygon(latlngs, { color: color }).bindPopup(`
-            <b>${polygon.nama_kos}</b><br>
-            Harga sewa tahunan: Rp${polygon.harga_sewa_tahunan}<br>
-            Jumlah kamar: ${polygon.jumlah_kamar || "Tidak diketahui"}<br>
-            Akses 24 jam: ${polygon.akses_24_jam}<br>
-            Fasilitas: ${Object.keys(polygon.fasilitas || {}).join(", ")}<br>
-            Deskripsi: ${polygon.deskripsi || "-"}
-          `);
-
-                  poly.addTo(polygonLayerGroup);
+                  polygonLayer.addTo(polygonLayerGroup);
                 }
               }
             });
@@ -156,6 +158,33 @@
             map.addLayer(polygonLayerGroup);
           }
           polygonsVisible = !polygonsVisible;
+        });
+
+        document.getElementById("searchBtn").addEventListener("click", function () {
+          const query = document.getElementById("searchInput").value.trim().toLowerCase();
+          const results = allPolygons.filter((p) => p.harga_sewa_tahunan <= Number(query));
+
+          const modalBody = document.getElementById("modalBody");
+          if (results.length === 0) {
+            modalBody.innerHTML = `<p>Tidak ditemukan data untuk "<b>${query}</b>".</p>`;
+          } else {
+            modalBody.innerHTML = results
+              .map(
+                (p) => `
+      <div class="mb-2">
+        <b>${p.nama_kos}</b><br>
+        Harga sewa: Rp. ${p.harga_sewa_tahunan},00<br>
+        Jumlah kamar: ${p.jumlah_kamar || "Tidak diketahui"}<br>
+        Fasilitas: ${Object.keys(p.fasilitas || {}).join(", ")}
+        <hr>
+      </div>
+    `
+              )
+              .join("");
+          }
+
+          const resultModal = new bootstrap.Modal(document.getElementById("resultModal"));
+          resultModal.show();
         });
       </script>
 
@@ -314,6 +343,20 @@
           </section>
         </article>
       </aside>
+      <!-- Modal Bootstrap -->
+      <div class="modal fade" id="resultModal" tabindex="-1" aria-labelledby="resultModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="resultModalLabel">Hasil Pencarian</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+              <!-- Isi hasil di sini -->
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
   </body>
 </html>
