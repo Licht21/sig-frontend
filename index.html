@@ -12,7 +12,7 @@
         width: 70vw;
       }
     </style>
-    <link rel="stylesheet" href="https://storage.googleapis.com/sistem-informasi-geo-yusuf/style.css" />
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <header class="navbar-container">
@@ -23,23 +23,44 @@
       <button id="searchBtn" class="btn btn-primary">Cari</button>
     </header>
     <main>
-      <div id="map">
-        <div style="margin-left: 8%; position: relative; z-index: 999; margin-top: 1%">
-          <button id="togglePoints" style="width: 8rem; padding-block: 1rem" class="btn btn-dark">Points</button>
-          <button id="toggleLines" style="width: 8rem; margin-block: 1rem; padding-block: 1rem" class="btn btn-dark">Lines</button>
-          <button id="togglePolygons" style="width: 8rem; padding-block: 1rem" class="btn btn-dark">Polygons</button>
-        </div>
-      </div>
+      <div id="map"></div>
       <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
       <script>
         const map = L.map("map").setView([3.566, 98.656], 13); // Posisi default
 
-        // Peta dasar Google Maps
-        const googleSat = L.tileLayer("https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
+        // Tambahkan layer Google Maps dan OpenStreetMap
+        const googleStreets = L.tileLayer("https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
           maxZoom: 20,
           subdomains: ["mt0", "mt1", "mt2", "mt3"],
-        }).addTo(map);
+        });
+
+        const openStreetMap = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+        });
+
+        // Atur default layer yang ditampilkan
+        googleStreets.addTo(map);
+
+        // Kumpulan basemap
+        const baseMaps = {
+          "Google Maps": googleStreets,
+          OpenStreetMap: openStreetMap,
+        };
+
+        const pointLayerGroup = L.layerGroup().addTo(map);
+        const lineLayerGroup = L.layerGroup().addTo(map);
+        const polygonLayerGroup = L.layerGroup().addTo(map);
+
+        // Kumpulan overlay (yang sudah kamu buat sebelumnya)
+        const overlayMaps = {
+          Points: pointLayerGroup,
+          Lines: lineLayerGroup,
+          Polygons: polygonLayerGroup,
+        };
+
+        // Tambahkan kontrol layer switcher ke peta
+        L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
 
         // Buat ikon custom di luar loop
         const customIcon = L.icon({
@@ -49,14 +70,11 @@
           popupAnchor: [0, -32],
         });
 
-        const pointLayerGroup = L.layerGroup().addTo(map);
-        const lineLayerGroup = L.layerGroup().addTo(map);
-        const polygonLayerGroup = L.layerGroup().addTo(map);
-
         // Point (marker)
         fetch("https://sig-930269745448.asia-southeast1.run.app/point")
           .then((response) => response.json())
           .then((points) => {
+            console.log(points.data);
             points.data.forEach((point) => {
               if (point.lokasi) {
                 const geojsonPoint = JSON.parse(point.lokasi);
@@ -81,6 +99,7 @@
         fetch("https://sig-930269745448.asia-southeast1.run.app/line")
           .then((response) => response.json())
           .then((data) => {
+            console.log(data.data);
             data.data.forEach((item) => {
               if (item.jalur) {
                 const geojsonLine = JSON.parse(item.jalur);
@@ -105,6 +124,7 @@
           .then((response) => response.json())
           .then((polygons) => {
             allPolygons = polygons.data;
+            console.log(allPolygons);
             polygons.data.forEach((polygon) => {
               if (polygon.lokasi) {
                 const geojsonPolygon = JSON.parse(polygon.lokasi);
@@ -127,38 +147,6 @@
               }
             });
           });
-
-        // Toggle logic
-        let pointsVisible = true;
-        let linesVisible = true;
-        let polygonsVisible = true;
-
-        document.getElementById("togglePoints").addEventListener("click", () => {
-          if (pointsVisible) {
-            map.removeLayer(pointLayerGroup);
-          } else {
-            map.addLayer(pointLayerGroup);
-          }
-          pointsVisible = !pointsVisible;
-        });
-
-        document.getElementById("toggleLines").addEventListener("click", () => {
-          if (linesVisible) {
-            map.removeLayer(lineLayerGroup);
-          } else {
-            map.addLayer(lineLayerGroup);
-          }
-          linesVisible = !linesVisible;
-        });
-
-        document.getElementById("togglePolygons").addEventListener("click", () => {
-          if (polygonsVisible) {
-            map.removeLayer(polygonLayerGroup);
-          } else {
-            map.addLayer(polygonLayerGroup);
-          }
-          polygonsVisible = !polygonsVisible;
-        });
 
         document.getElementById("searchBtn").addEventListener("click", function () {
           const query = document.getElementById("searchInput").value.trim().toLowerCase();

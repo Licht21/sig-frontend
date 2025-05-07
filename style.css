@@ -139,7 +139,7 @@ footer {
 @media screen and (max-width: 1200px) {
   main {
     flex-direction: column;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     height: 100vh;
   }
 
@@ -180,5 +180,11 @@ footer {
   }
   img {
     margin: auto;
+  }
+  #map {
+    max-height: 100vh;
+  }
+  main article {
+    margin-block: 0;
   }
 }
